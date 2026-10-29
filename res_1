@@ -1,0 +1,80 @@
+================================================================================
+ENCRYPTED FILE VAULT - SESSION 1 EVALUATION REPORT
+================================================================================
+Date & Time : 2026-10-29 23:45:07
+Platform    : Windows-10-10.0.26300-SP0
+Python      : 3.11.9
+CPU         : Intel64 Family 6 Model 140 Stepping 1, GenuineIntel
+Iterations  : 600,000 (PBKDF2-HMAC-SHA256)
+Cipher/Mode : AES-256-CTR with HMAC-SHA256 (Encrypt-then-MAC)
+================================================================================
+
+[PART 1: SYNTHETIC DATASET CREATION & ENCRYPTION / DECRYPTION ROUND-TRIP]
+--------------------------------------------------------------------------------
+Filename               | Orig Size  | Vault Size | Overhead | Enc(s)   | Dec(s)   | Integrity (SHA-256)
+-------------------------------------------------------------------------------------------------------
+empty.bin              | 0          | 73         | 73       | 1.0190   | 0.9973   | MATCH (VERIFIED)   
+small_text.txt         | 1220       | 1293       | 73       | 0.8732   | 0.8095   | MATCH (VERIFIED)   
+random_512B.bin        | 512        | 585        | 73       | 0.8496   | 0.8512   | MATCH (VERIFIED)   
+chunk_minus_1.bin      | 1048575    | 1048648    | 73       | 0.9728   | 0.7891   | MATCH (VERIFIED)   
+chunk_exact.bin        | 1048576    | 1048649    | 73       | 0.9259   | 0.9059   | MATCH (VERIFIED)   
+chunk_plus_1.bin       | 1048577    | 1048650    | 73       | 0.9682   | 0.8983   | MATCH (VERIFIED)   
+multi_chunk_10MB.bin   | 10485760   | 10485833   | 73       | 0.9607   | 0.8509   | MATCH (VERIFIED)   
+
+All synthetic test files verified: bit-for-bit round-trip match via SHA-256.
+Fixed cryptographic overhead verified: exactly 73 bytes (Header: 41B, HMAC: 32B).
+
+================================================================================
+[PART 2: ADVERSARIAL & SECURITY EVALUATION (TAMPERING & AUTHENTICATION TESTS)]
+================================================================================
+Wrong Password Authentication Rejection       : PASSED [OK] -> Rejected with generic safe message, zero plaintext output
+Header Magic Tampering (EVLT modification)    : PASSED [OK] -> Rejected immediately without running KDF or writing files
+Header Nonce Tampering (bit flip in nonce)    : PASSED [OK] -> HMAC pass 1 verification failed, zero plaintext written
+Ciphertext Bit Flip Tampering                 : PASSED [OK] -> HMAC pass 1 verification failed, zero plaintext written
+HMAC Authentication Tag Tampering             : PASSED [OK] -> Constant-time HMAC check failed, zero plaintext written
+File Truncation Attack (-16 bytes)            : PASSED [OK] -> Rejected safely without producing partial plaintext
+Temporary File Leak Prevention                : PASSED [OK] -> Zero leftover temporary files (.vault-tmp-*) in directory
+Silent Overwrite Protection                   : PASSED [OK] -> Refused to overwrite existing file without --force
+
+================================================================================
+[PART 3: KEY DERIVATION FUNCTION & SPEED BENCHMARK SUMMARY]
+================================================================================
+KDF: PBKDF2-HMAC-SHA256 (64-byte key material split into Enc + MAC keys)
+| Iterations | Duration (ms) | Assessment |
+|---|---|---|
+| 100,000    | 198.7         | Fast (sub-optimal) |
+| 300,000    | 373.9         | High cost |
+| 600,000    | 859.6         | Recommended Standard |
+| 1,000,000  | 1465.0        | High cost |
+
+Throughput on Synthetic Datasets (Chunk size = 1 MB):
+| Dataset Size | Encrypt Time (s) | Decrypt Time (s) | Encrypt Speed (MB/s) | Decrypt Speed (MB/s) |
+|---|---|---|---|---|
+| 1            | 0.841            | 0.833            | 1.19                 | 1.20                 |
+| 10           | 0.832            | 0.842            | 12.01                | 11.87                |
+| 100          | 1.023            | 1.038            | 97.78                | 96.37                |
+| 500          | 1.893            | 1.951            | 264.11               | 256.28               |
+
+================================================================================
+[PART 4: SUMMARY & CONCLUSION FOR SESSION 1]
+================================================================================
+1. All 37 automated unit/integration tests in test_vault.py passed (100% test pass rate).
+2. Synthetic tests across multiple sizes (0B to 10MB) passed bit-for-bit SHA-256 verification.
+3. Fixed overhead of 73 bytes strictly adhered to (41-byte header + 32-byte HMAC tag).
+4. All tampering, truncation, bit-flipping, and incorrect password attacks were successfully thwarted.
+5. Pass-1 HMAC verification prevents unauthenticated plaintext generation or padding-oracle attacks.
+6. Clean teardown verified: no temporary files leaked during failure states.
+================================================================================
+
+================================================================================
+[PART 1B: EXTENDED LARGE-SCALE SYNTHETIC TESTS (20MB, 50MB, 100MB, 200MB)]
+================================================================================
+Size (MB)  | Orig Size (B)   | Vault Size (B)  | Overhead | Enc(s)   | Enc MB/s  | Dec(s)   | Dec MB/s  | SHA-256 Match
+-----------------------------------------------------------------------------------------------------------------------
+20         | 20971520        | 20971593        | 73       | 1.22     | 16.4      | 1.03     | 19.5      | MATCH [OK]
+50         | 52428800        | 52428873        | 73       | 0.93     | 53.5      | 1.28     | 39.2      | MATCH [OK]
+100        | 104857600       | 104857673       | 73       | 1.61     | 62.1      | 1.36     | 73.5      | MATCH [OK]
+200        | 209715200       | 209715273       | 73       | 1.56     | 128.4     | 1.44     | 139.3     | MATCH [OK]
+
+Conclusion: All extended large files passed 100% bit-for-bit SHA-256 integrity verification.
+Fixed 73-byte overhead and streaming constant-memory model held true across all sizes.
