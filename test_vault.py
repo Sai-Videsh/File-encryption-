@@ -139,3 +139,86 @@ def test_unicode_password(tmp_path):
     vault.encrypt_file(src, enc, pw)
     vault.decrypt_file(enc, out, pw)
     assert open(out, "rb").read() == b"secret"
+
+
+def test_kdf_scrypt_vs_pbkdf2_round_trip(tmp_path):
+    data = b"Testing selectable KDFs in Version 2"
+    src = write(tmp_path / "kdf_test.bin", data)
+    pw = vault.prep_password("StrongP@ssphrase2026!")
+
+    # Test scrypt
+    enc_scrypt = str(tmp_path / "scrypt.vault")
+    out_scrypt = str(tmp_path / "scrypt.out")
+    vault.encrypt_file(src, enc_scrypt, pw, kdf="scrypt")
+    vault.decrypt_file(enc_scrypt, out_scrypt, pw)
+    assert open(out_scrypt, "rb").read() == data
+
+    # Test PBKDF2 in V2 format
+    enc_pbkdf2 = str(tmp_path / "pbkdf2.vault")
+    out_pbkdf2 = str(tmp_path / "pbkdf2.out")
+    vault.encrypt_file(src, enc_pbkdf2, pw, kdf="pbkdf2")
+    vault.decrypt_file(enc_pbkdf2, out_pbkdf2, pw)
+    assert open(out_pbkdf2, "rb").read() == data
+
+
+def test_legacy_version_1_compatibility(tmp_path):
+    data = b"V1 legacy data verification"
+    src = write(tmp_path / "v1.bin", data)
+    enc = str(tmp_path / "v1.vault")
+    out = str(tmp_path / "v1.out")
+    pw = vault.prep_password("StrongP@ssphrase2026!")
+
+    # Explicitly encrypt with V1
+    vault.encrypt_file(src, enc, pw, version=vault.VERSION_1)
+    assert os.path.getsize(enc) == len(data) + vault.HEADER_LEN_V1 + vault.TAG_LEN
+
+    # Decrypt with unified decryptor
+    vault.decrypt_file(enc, out, pw)
+    assert open(out, "rb").read() == data
+
+
+def test_keyfile_support(tmp_path):
+    data = b"Confidential Two-Factor Protected Data"
+    src = write(tmp_path / "data.bin", data)
+    enc = str(tmp_path / "data.vault")
+    out = str(tmp_path / "data.out")
+    pw = vault.prep_password("StrongP@ssphrase2026!")
+
+    # Generate keyfile
+    kf_path = str(tmp_path / "user.key")
+    vault.generate_keyfile(kf_path)
+    key_bytes = vault.load_keyfile(kf_path)
+    assert len(key_bytes) == 32
+
+    # Encrypt with password + keyfile
+    vault.encrypt_file(src, enc, pw, keyfile_data=key_bytes)
+
+    # Decrypt without keyfile -> MUST FAIL
+    with pytest.raises(vault.VaultError) as exc:
+        vault.decrypt_file(enc, out, pw, keyfile_data=b"")
+    assert str(exc.value) == vault.GENERIC_FAIL
+    assert not os.path.exists(out)
+
+    # Decrypt with WRONG keyfile -> MUST FAIL
+    wrong_key = os.urandom(32)
+    with pytest.raises(vault.VaultError) as exc:
+        vault.decrypt_file(enc, out, pw, keyfile_data=wrong_key)
+    assert str(exc.value) == vault.GENERIC_FAIL
+    assert not os.path.exists(out)
+
+    # Decrypt with CORRECT keyfile -> SUCCESS
+    vault.decrypt_file(enc, out, pw, keyfile_data=key_bytes)
+    assert open(out, "rb").read() == data
+
+
+def test_password_policy():
+    # Less than 12 chars rejected
+    with pytest.raises(vault.VaultError, match="too short"):
+        vault.validate_password_policy("short99")
+
+    # Common weak password rejected
+    with pytest.raises(vault.VaultError, match="too common"):
+        vault.validate_password_policy("password1234")
+
+    # 12+ chars valid passphrase accepted
+    vault.validate_password_policy("valid-strong-passphrase-2026")

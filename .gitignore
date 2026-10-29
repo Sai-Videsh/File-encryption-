@@ -1,0 +1,57 @@
+# ==============================================================================
+# Git Ignore for Encrypted File Vault
+# ==============================================================================
+
+# Cryptographic Keys, Tokens & Secrets (CRITICAL: NEVER COMMIT SECRETS)
+*.key
+*.keyfile
+*.pem
+*.priv
+*.pub
+*.secret
+*.token
+*.pfx
+*.p12
+*.asc
+id_rsa*
+id_ed25519*
+
+# Encrypted Vault Files & Test Decrypted Plaintexts
+*.vault
+*.dec
+*.enc
+
+# Temporary & Working Files
+.vault-tmp-*
+*.tmp
+*.temp
+
+# Synthetic Test & Evaluation Datasets
+eval_*
+test_data/
+*.bin
+*.log
+
+# Python Virtual Environments
+.venv/
+venv/
+ENV/
+env/
+
+# Python Bytecode & Cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
