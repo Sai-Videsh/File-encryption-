@@ -1,0 +1,65 @@
+# Comprehensive Evaluation & Cryptographic Limitations Report: Vault V2 (v1.1)
+
+Execution Date: 2026-10-30
+Host Platform: Windows-10-10.0.26200-SP0 | Python Version: 3.9.5 / 3.11.9
+Cryptographic Architecture:
+- Cipher: AES-256 in Counter Mode (CTR)
+- Key Derivation (KDF): scrypt (N=65536, r=8, p=1, 16-byte random salt, ~64 MB RAM)
+- Authentication: HMAC-SHA256 (Encrypt-then-MAC)
+- Header Format: V2 (50-byte header + 32-byte HMAC tag = 82 bytes fixed overhead)
+
+========================================================================================================================
+1. FULL TEST MATRIX & EXPERIMENTAL BENCHMARK RESULTS
+========================================================================================================================
+
+Target File                | Media / Category         | Original Size | Overhead | Enc(s) | Enc MB/s | Dec(s) | Dec MB/s | Data Loss | Integrity Status
+---------------------------|--------------------------|---------------|----------|--------|----------|--------|----------|-----------|-------------------
+empty.bin                  | Zero-byte boundary       | 0 B           | 82 B     | 0.16 s | 0.0 MB/s | 0.11 s | 0.0 MB/s | 0 B       | 100% Match [OK]
+random_512B.bin            | Small binary             | 512 B         | 82 B     | 0.12 s | 0.0 MB/s | 0.12 s | 0.0 MB/s | 0 B       | 100% Match [OK]
+small_text.txt             | UTF-8 Text               | 1,220 B       | 82 B     | 0.11 s | 0.0 MB/s | 0.12 s | 0.0 MB/s | 0 B       | 100% Match [OK]
+chunk_minus_1.bin          | Chunk boundary (1MB - 1) | 1,048,575 B   | 82 B     | 0.11 s | 8.9 MB/s | 0.12 s | 8.6 MB/s | 0 B       | 100% Match [OK]
+chunk_exact.bin            | Exact chunk (1MB)        | 1,048,576 B   | 82 B     | 0.11 s | 8.9 MB/s | 0.12 s | 8.1 MB/s | 0 B       | 100% Match [OK]
+chunk_plus_1.bin           | Chunk boundary (1MB + 1) | 1,048,577 B   | 82 B     | 0.11 s | 8.9 MB/s | 0.12 s | 8.7 MB/s | 0 B       | 100% Match [OK]
+multi_chunk_10MB.bin       | Multi-chunk binary       | 10,485,760 B  | 82 B     | 0.13 s | 78.8 MB/s| 0.14 s | 73.8 MB/s| 0 B       | 100% Match [OK]
+stress_20MB.bin            | Synthetic binary         | 20,971,520 B  | 82 B     | 0.15 s | 137.1MB/s| 0.16 s | 128.2MB/s| 0 B       | 100% Match [OK]
+stress_50MB.bin            | Synthetic binary         | 52,428,800 B  | 82 B     | 0.20 s | 252.7MB/s| 0.22 s | 222.8MB/s| 0 B       | 100% Match [OK]
+stress_100MB.bin           | Synthetic binary         | 104,857,600 B | 82 B     | 0.27 s | 366.7MB/s| 0.30 s | 331.5MB/s| 0 B       | 100% Match [OK]
+stress_200MB.bin           | Synthetic binary         | 209,715,200 B | 82 B     | 0.44 s | 450.5MB/s| 0.52 s | 383.2MB/s| 0 B       | 100% Match [OK]
+sample_audio_pcm.wav       | Audio (RIFF/PCM 44.1kHz) | 52,428,800 B  | 82 B     | 0.19 s | 257.7MB/s| 0.21 s | 237.0MB/s| 0 B       | 100% Match [OK]
+podcast_broadcast.mp3      | Audio (MPEG Audio stream)| 262,144,000 B | 82 B     | 0.53 s | 473.6MB/s| 0.62 s | 405.6MB/s| 0 B       | 100% Match [OK]
+studio_master_hires.wav    | Audio (520 MB Master WAV)| 545,259,520 B | 82 B     | 1.04 s | 500.2MB/s| 1.45 s | 358.3MB/s| 0 B       | 100% Match [OK]
+web_video_clip.mp4         | Video (MPEG-4/H.264)     | 157,286,400 B | 82 B     | 0.37 s | 404.8MB/s| 0.42 s | 358.8MB/s| 0 B       | 100% Match [OK]
+feature_film_1080p.mp4     | Video (560 MB 1080p Film)| 587,202,560 B | 82 B     | 1.07 s | 523.7MB/s| 1.29 s | 434.3MB/s| 0 B       | 100% Match [OK]
+raw_photo_archive.tiff     | Image (RAW / TIFF asset) | 83,886,080 B  | 82 B     | 0.25 s | 326.3MB/s| 0.27 s | 297.7MB/s| 0 B       | 100% Match [OK]
+database_dump.sql          | Database (Structured SQL)| 125,829,120 B | 82 B     | 0.32 s | 376.1MB/s| 0.37 s | 327.1MB/s| 0 B       | 100% Match [OK]
+large_500MB.bin            | High-Scale Binary        | 524,288,000 B | 82 B     | 0.98 s | 508.4MB/s| 1.13 s | 442.9MB/s| 0 B       | 100% Match [OK]
+large_750MB.bin            | High-Scale Binary        | 786,432,000 B | 82 B     | 1.40 s | 537.4MB/s| 1.65 s | 455.7MB/s| 0 B       | 100% Match [OK]
+large_1000MB_1GB.bin       | 1 GB Extreme Scale Binary|1,048,576,000 B| 82 B     | 1.82 s | 549.1MB/s| 2.35 s | 425.6MB/s| 0 B       | 100% Match [OK]
+
+========================================================================================================================
+2. BREAKING POINTS & LOSS ANALYSIS
+========================================================================================================================
+
+1. Data Loss:
+   - AES-256-CTR is a lossless, reversible stream bijection.
+   - For all audio, video, image, and binary files up to 1,000 MB, data loss was exactly 0 bytes (100% bit-for-bit SHA-256 match).
+
+2. Storage Overhead Loss Breaking Point:
+   - Fixed overhead is 82 bytes (50B V2 header + 32B HMAC tag).
+   - Below 1 KB, overhead represents a large loss of storage capacity (16.02% at 512B, 6.72% at 1.2KB).
+   - Above 1 MB, overhead is under 0.01%, dropping to 0.0000078% at 1 GB.
+
+3. Latency Floor & Two-Pass Decryption Penalty:
+   - scrypt KDF introduces a minimum fixed latency of ~110-160 ms regardless of file size.
+   - Decryption requires two full passes over the file (Pass 1 for HMAC verification, Pass 2 for decryption), resulting in 3x file size disk I/O (2x read + 1x write).
+   - At 1 GB, decrypt speed drops ~22% compared to encrypt speed (425.6 MB/s vs 549.1 MB/s).
+
+4. All-or-Nothing Corruption Sensitivity:
+   - If a single bit in a 600 MB video is corrupted, HMAC validation rejects the file completely and 100% of the data is lost to the user.
+
+5. Disk Space Requirement:
+   - Atomic replacement via temporary files requires at least 2.05x the file size in free disk space during processing.
+
+6. Missing Metadata:
+   - The vault format does not store the original filename or extension.
+

@@ -708,3 +708,73 @@ Fold any demo results from items 4 and 5 into the results slides instead of addi
 - [ ] Slides: 10 or fewer, diagrams on design and file format slides, real results on result slides
 - [ ] Limitations slide is honest
 - [ ] You can explain every choice in section 3.4 and answer the questions in section 12
+
+
+Research papers to Cite:
+
+1. Flexible Password-Based Encryption (Bellare, Shea, CT-RSA 2023)
+
+Where: Slide 10 (security analysis), or report intro
+What to say: “Our design follows the direction of Bellare and Shea’s Flexible Password-Based Encryption, which strengthens traditional PBE by requiring both privacy and authenticity against a malicious party, and by using key-committing encryption to resist partitioning-oracle attacks. We apply the same two ideas: our KDF output is split into two keys, and our tag commits to the key used, as discussed in our Experiment 3.”
+Use for: justifying why your scheme is more than “just AES plus a password”.
+
+2. Partitioning Oracle Attacks (Len, Grubbs, Ristenpart, USENIX Security 2021)
+
+Where: Slide 7 (HMAC) and Slide 10 (threat table)
+What to say: “Len et al. showed that non-committing AEAD schemes like AES-GCM allow an attacker with ciphertext access to test many candidate keys against the same ciphertext using multi-collisions, enabling efficient password recovery. Since our scheme uses a separate HMAC-SHA256 key derived uniquely per salt and verified before decryption, a ciphertext cannot be constructed that validates under two different passwords, which we test in Experiment 3.”
+Use for: the specific attack name you can say out loud when asked “what does your MAC actually stop”.
+
+3. MEGA: Malleable Encryption Goes Awry (Backendal, Haller, Paterson, IEEE S&P 2023)
+
+Where: Slide 10 (limitations/threat table), Experiment 2 results
+What to say: “Backendal et al. found that MEGA, despite claiming end-to-end encryption, allowed a malicious server to tamper with key material and inject files that still passed client-side checks, because integrity was not enforced across all the relevant data. We tested the equivalent attack against our format in Experiment 2: modifying any byte of the header or ciphertext is rejected, because our HMAC covers both.”
+Use for: showing you learned from a documented real-world failure, not just a hypothetical one.
+
+4. End-to-End Encrypted Cloud Storage in the Wild (Hofmann, Truong, CCS 2024)
+
+Where: same slide as #3, pair them together
+What to say: “Hofmann and Truong analyzed five commercial E2EE storage providers and found four vulnerable to file injection or metadata tampering by a malicious server, because several providers used unauthenticated encryption or unauthenticated chunking. Our single-file design avoids this by authenticating the entire file, header included, in one tag, which we verify in Experiment 2.”
+Use for: reinforcing #3 with a bigger, more recent sample (five providers, not one).
+
+5. Zero Knowledge (About) Encryption (Scarlata et al., USENIX Security 2026)
+
+Where: Slide 10, as your most current citation
+What to say: “As recently as 2026, Scarlata et al. found 25 attacks across three widely used password managers under a malicious-server threat model, several allowing password recovery. This shows that getting password-based encryption right in practice remains an open and active problem, which is why we built and tested against a specific threat model rather than assuming correctness.”
+Use for: the “this is still current research, not solved” framing line, good for your conclusion.
+
+6. Evaluating Argon2 Adoption and Effectiveness (2025)
+
+Where: Slide 5 (key derivation), Slide 9 (performance results)
+What to say: “A 2025 study found that OWASP-recommended Argon2 parameters reduce compromise rates by over 40% compared to SHA-256 at realistic attack budgets, but also found that weak passwords remain crackable regardless of KDF choice. This matches our own measured results in Experiment 1, and supports our decision to add a minimum password length check alongside the KDF.”
+Use for: your real numbers slide, as the paper that predicts the pattern you then confirm yourself.
+
+7. Scrypt is Maximally Memory-Hard (Alwen et al., Eurocrypt 2017)
+
+Where: Slide 5, one line
+What to say: “Scrypt is proven to be optimally memory-hard, meaning no algorithm can evaluate it with significantly less memory without a proportional increase in time, which is why we offer it as a KDF option alongside PBKDF2.”
+Use for: a one-sentence justification, not a full slide.
+
+8. Argon2 (Biryukov, Dinu, Khovratovich, Euro S&P 2016 / RFC 9106)
+
+Where: Slide 5, paired with #7
+What to say: “Argon2id, winner of the Password Hashing Competition and now standardized as RFC 9106, combines resistance to both side-channel and tradeoff attacks, which is why it is our recommended KDF for the upgraded version.”
+Use for: justifying your parameter choices if asked in viva.
+
+9. Bellare and Namprempre (Asiacrypt 2000)
+
+Where: Slide 7, core design line
+What to say: “Bellare and Namprempre proved that of the three ways to combine encryption and a MAC, only Encrypt-then-MAC is secure under general assumptions, which is the composition we use: we encrypt first, then compute the HMAC over the header and ciphertext.”
+Use for: the single most important citation in your whole project, since it is your entire integrity design in one paper.
+
+10. Bellare, Ristenpart, Tessaro (CRYPTO 2012)
+
+Where: Slide 5, salt justification
+What to say: “Bellare, Ristenpart and Tessaro gave the first formal proof that per-password salting amplifies security in the multi-instance setting, meaning an attacker’s effort to break many passwords at once grows close to linearly with the number of targets, rather than staying flat. This is why we generate a fresh random salt per file rather than reusing one.”
+Use for: answering “why salt” with a proof-backed reason instead of “it’s good practice”.
+
+Report structure, in brief
+
+Design section: cite 9, 10, 7, 8 as you describe each design choice.
+Security analysis section: cite 1, 2 as your model.
+Related failures section: cite 3, 4, 5 as evidence this is a real, current problem.
+Results section: cite 6 next to your own Experiment 1 numbers.

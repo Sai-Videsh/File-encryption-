@@ -78,3 +78,24 @@ Size (MB)  | Orig Size (B)   | Vault Size (B)  | Overhead | Enc(s)   | Enc MB/s 
 
 Conclusion: All extended large files passed 100% bit-for-bit SHA-256 integrity verification.
 Fixed 73-byte overhead and streaming constant-memory model held true across all sizes.
+
+
+================================================================================
+[PART 1C: MULTIMEDIA & HIGH-SCALE EXTENDED TESTS (V2 SCRYPT + AES-256-CTR)]
+================================================================================
+Target File                | Media / Category         | Orig Size (B)   | Vault Size (B)  | Overhead | Enc(s) | Enc MB/s | Dec(s) | Dec MB/s | SHA-256 Match
+---------------------------------------------------------------------------------------------------------------------------------------------------
+sample_audio_pcm.wav       | Audio (RIFF/PCM 44.1kHz) | 52428800        | 52428882        | 82       | 0.19   | 257.7    | 0.21   | 237.0    | MATCH [OK]
+podcast_broadcast.mp3      | Audio (MPEG Audio stream)| 262144000       | 262144082       | 82       | 0.53   | 473.6    | 0.62   | 405.6    | MATCH [OK]
+studio_master_hires.wav    | Audio (520 MB Master WAV)| 545259520       | 545259602       | 82       | 1.04   | 500.2    | 1.45   | 358.3    | MATCH [OK]
+web_video_clip.mp4         | Video (MPEG-4/H.264)     | 157286400       | 157286482       | 82       | 0.37   | 404.8    | 0.42   | 358.8    | MATCH [OK]
+feature_film_1080p.mp4     | Video (560 MB 1080p Film)| 587202560       | 587202642       | 82       | 1.07   | 523.7    | 1.29   | 434.3    | MATCH [OK]
+raw_photo_archive.tiff     | Image (RAW / TIFF asset) | 83886080        | 83886162        | 82       | 0.25   | 326.3    | 0.27   | 297.7    | MATCH [OK]
+database_dump.sql          | Database (Structured SQL)| 125829120       | 125829202       | 82       | 0.32   | 376.1    | 0.37   | 327.1    | MATCH [OK]
+large_500MB.bin            | 500 MB High-Scale Binary | 524288000       | 524288082       | 82       | 0.98   | 508.4    | 1.13   | 442.9    | MATCH [OK]
+large_750MB.bin            | 750 MB High-Scale Binary | 786432000       | 786432082       | 82       | 1.40   | 537.4    | 1.65   | 455.7    | MATCH [OK]
+large_1000MB_1GB.bin       | 1000 MB (1 GB) Extreme   | 1048576000      | 1048576082      | 82       | 1.82   | 549.1    | 2.35   | 425.6    | MATCH [OK]
+
+Conclusion: All multimedia files (audio, video, raw images, SQL dumps) and extreme sizes up to 1,000 MB (1 GB)
+passed 100% bit-for-bit SHA-256 integrity verification with exactly 0 bytes lost.
+V2 fixed overhead is exactly 82 bytes (50B header + 32B HMAC tag). Streaming I/O kept RAM usage strictly constant O(1).
